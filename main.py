@@ -1,0 +1,200 @@
+import requests
+import json
+from bs4 import BeautifulSoup
+from tkinter import *
+from tkinter import messagebox
+
+HEARDERS = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"}
+mangas_info = 'mangs.json'
+mangas_url = 'mangas.txt'
+MANGAS_LER = 'capitulos para ler.json'
+
+def atualiza_mangs(data, manga_novo, mangas_info):
+    data.update(manga_novo)
+    with open(mangas_info, 'r+') as file:
+        json.dump(data, file, indent=1)
+
+
+
+def verify_last_chaper(data, last_chapter, name_manga, manga_novo):
+    try:
+        if last_chapter > data[name_manga]['ultimo_capitulo']:
+            #data.update(manga_novo)
+            with open(MANGAS_LER, 'r') as file:
+                file_data = json.load(file)
+                #file_data[name_manga].append(manga_novo)
+                file_data.update(manga_novo)
+                print(file_data)
+                #file.seek(0)
+            with open(MANGAS_LER, 'w') as file:
+                json.dump(file_data, file, indent=1)
+            
+            atualiza_mangs(data, manga_novo, mangas_info)
+
+            messagebox.showinfo(title='Capitulo novo !', message=f'Capitulo novo de: {name_manga} Num: {last_chapter}')                    
+        else:
+            return 0
+        
+    except json.decoder.JSONDecodeError:
+        print('json.decoder.JSONDecodeError')
+        with open(MANGAS_LER, 'r+') as file:
+            json.dump(manga_novo, file, indent=1)
+        
+        atualiza_mangs(data, manga_novo, mangas_info)
+
+    except KeyError:
+        print('key error')
+        #data.update(manga_novo)
+        with open(MANGAS_LER, 'r') as file:
+            file_data = json.load(file)
+            file_data.update(manga_novo)
+            #print(file_data)
+            #file_data[name_manga].append(manga_novo)
+            #file.seek(0)
+            #json.dump(file_data, file, indent=1)
+        with open(MANGAS_LER, 'w') as file:          
+            json.dump(file_data, file, indent=1)
+
+        atualiza_mangs(data, manga_novo, mangas_info)
+
+    else:
+        atualiza_mangs(data, manga_novo, mangas_info)
+
+
+def cria_manga(url):
+
+    request = requests.get(url,headers=HEARDERS)
+    request.raise_for_status()
+
+    soup = BeautifulSoup(request.content, 'html.parser')
+    last_chapter = ''
+    try:
+        last_chapter = (soup.find('a', {'class':"chapter-name text-nowrap"}).get_text()[8:12])
+    except AttributeError:
+        print(f'manga com problema:\nurl: {url}')
+        return 0
+    if ':' in last_chapter:
+        last_chapter = last_chapter.replace(':', '')
+    if '-' in last_chapter:
+        last_chapter = last_chapter.replace('-', '.')
+
+    last_chapter = float(last_chapter)
+    name_manga = soup.find('div', class_='story-info-right').h1.getText()
+    manga_novo = {name_manga: {
+            'ultimo_capitulo':last_chapter,
+            'capitulo_anterior':'',
+            'url':url
+            }}
+    try:
+        with open(mangas_info,'r+') as file:
+            data = json.load(file)
+
+    except json.decoder.JSONDecodeError:
+        with open(mangas_info, 'w') as file:
+            data = json.dump(manga_novo, file, indent=1)
+
+    else:
+        verify_last_chaper(data, last_chapter, name_manga, manga_novo)   
+    finally:
+        mangas_para_ler()
+
+
+def ultimo_chap(event):
+  """Show the last chapter of the manga selected in the listbox"""
+  selected = lista_mangas.curselection()
+  manga_name = lista_mangas.get(selected)
+
+  with open (mangas_info) as mangas:
+    mangas = json.load(mangas)
+
+  ultimo_cap = mangas[manga_name]['ultimo_capitulo']
+  procura_ult_entry.delete(0, END)
+  procura_ult_entry.insert(0, ultimo_cap)
+
+
+def del_selected(event):
+    """Delete whatever is selected"""
+    selected = lista_mangas_ler.curselection()
+    #data_selected = lista_mangas_ler.get(selected)
+    lista_mangas_ler.delete(selected[0])
+
+
+#cria lista dos mangas no tkinter
+def mangas_para_ler():
+    lista_mangas_ler.delete(0, END)
+    try:
+        with open(MANGAS_LER, 'r') as mangas:
+            mangas_ler = json.load(mangas)
+            manga_keys = [manga for manga in list(mangas_ler)]
+    except json.JSONDecodeError:
+        return 0
+
+
+    for manga in manga_keys:
+        lista_mangas_ler.insert(END, manga)
+        lista_mangas_ler.insert(END, mangas_ler[manga]['url'])
+        lista_mangas_ler.insert(END, '')
+
+
+def atualiza_mangas():
+    try:
+        with open(mangas_url,'r') as f:
+            mangas = f.readlines()
+    except FileNotFoundError:
+        print("Nenhum manga encontrado")
+    else:
+        for manga in mangas:
+            cria_manga(manga.strip())
+            
+        #with open(MANGAS_LER) as mangas:
+            #mangas_ler = mangas.readlines()
+            #messagebox.showinfo(title='Mangas com capitulo novo !', message=f'Capitulo novo de: {}')
+    finally:    
+        mangas_para_ler()
+  
+
+#Window
+window = Tk()
+window.title("Atualiza Manga")
+window.config(padx=20, pady=10)
+
+#Buttons
+atualiza_caps_button = Button(text='Atualiza Capitulos',command=atualiza_mangas)
+atualiza_caps_button.grid(column=0,row=1)
+
+delete_button = Button(text='Deleta manga', command=lambda: del_selected(lista_mangas_ler))
+delete_button.grid(column=1, row=1)
+
+#procura_ult_button = Button(text='Ultimo capitulo')
+#procura_ult_button.grid(column=0, row=2)
+
+#entrys
+procura_ult_entry = Entry()
+procura_ult_entry.grid(column=0, row=3,columnspan=2)
+
+#Labels
+title_label = Label(text='Procura Mangas')
+title_label.grid(column=0, row=0,columnspan=2,pady=10)
+
+#listbox todos mangas
+lista_mangas = Listbox(window, width=30)
+try:
+    with open (mangas_info) as mangas:
+        mangas = json.load(mangas)
+except json.decoder.JSONDecodeError:
+    pass
+else:
+    for manga in mangas:
+        lista_mangas.insert(END, manga)
+lista_mangas.grid(column=0,row=2,)
+lista_mangas.bind('<<ListboxSelect>>', ultimo_chap)
+
+#listbox mangas para ler
+lista_mangas_ler = Listbox(window, width=30)
+lista_mangas_ler.grid(column=1, row=2,padx=10)
+
+mangas_para_ler()
+
+window.mainloop()
+
+ 
