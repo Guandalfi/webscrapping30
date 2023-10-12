@@ -3,11 +3,13 @@ import json
 from bs4 import BeautifulSoup
 from tkinter import *
 from tkinter import messagebox
+from pyperclip import copy
 
 HEARDERS = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/109.0"}
 mangas_info = 'mangs.json'
 mangas_url = 'mangas.txt'
 MANGAS_LER = 'capitulos para ler.json'
+
 
 def atualiza_mangs(data, manga_novo, mangas_info):
     data.update(manga_novo)
@@ -15,30 +17,24 @@ def atualiza_mangs(data, manga_novo, mangas_info):
         json.dump(data, file, indent=1)
 
 
-
 def verify_last_chaper(data, last_chapter, name_manga, manga_novo):
     try:
         if last_chapter > data[name_manga]['ultimo_capitulo']:
-            #data.update(manga_novo)
             with open(MANGAS_LER, 'r') as file:
                 file_data = json.load(file)
-                #file_data[name_manga].append(manga_novo)
                 file_data.update(manga_novo)
-                print(file_data)
-                #file.seek(0)
             with open(MANGAS_LER, 'w') as file:
                 json.dump(file_data, file, indent=1)
-            
-            atualiza_mangs(data, manga_novo, mangas_info)
 
-            messagebox.showinfo(title='Capitulo novo !', message=f'Capitulo novo de: {name_manga} Num: {last_chapter}')                    
+            atualiza_mangs(data, manga_novo, mangas_info)
+            messagebox.showinfo(title='Capitulo novo !', message=f'Capitulo novo de: {name_manga}')
         else:
             return 0
-        
     except json.decoder.JSONDecodeError:
         print('json.decoder.JSONDecodeError')
         with open(MANGAS_LER, 'r+') as file:
             json.dump(manga_novo, file, indent=1)
+        messagebox.showinfo(title='Capitulo novo !', message=f'Capitulo novo de: {name_manga}')
         
         atualiza_mangs(data, manga_novo, mangas_info)
 
@@ -46,14 +42,13 @@ def verify_last_chaper(data, last_chapter, name_manga, manga_novo):
         print('key error')
         #data.update(manga_novo)
         with open(MANGAS_LER, 'r') as file:
+            #json.dump(manga_novo, file, indent=1)
             file_data = json.load(file)
             file_data.update(manga_novo)
-            #print(file_data)
-            #file_data[name_manga].append(manga_novo)
-            #file.seek(0)
-            #json.dump(file_data, file, indent=1)
-        with open(MANGAS_LER, 'w') as file:          
-            json.dump(file_data, file, indent=1)
+            with open(MANGAS_LER, 'w') as file:
+                json.dump(file_data, file, indent=1)
+
+        messagebox.showinfo(title='Capitulo novo !', message=f'Capitulo novo de: {name_manga}')
 
         atualiza_mangs(data, manga_novo, mangas_info)
 
@@ -69,9 +64,12 @@ def cria_manga(url):
     soup = BeautifulSoup(request.content, 'html.parser')
     last_chapter = ''
     try:
-        last_chapter = (soup.find('a', {'class':"chapter-name text-nowrap"}).get_text()[8:12])
+        last_chapter = (soup.find('a', {'class':"chapter-name text-nowrap"}).get_text())
+        last_chapter_index = last_chapter.index("Chapter")
+        last_chapter = last_chapter[last_chapter_index + 7:last_chapter_index + 7 + 5]
+
     except AttributeError:
-        print(f'manga com problema:\nurl: {url}')
+        print(f'Pagina do manga não enctrado:\nurl: {url}')
         return 0
     if ':' in last_chapter:
         last_chapter = last_chapter.replace(':', '')
@@ -112,14 +110,6 @@ def ultimo_chap(event):
   procura_ult_entry.insert(0, ultimo_cap)
 
 
-def del_selected(event):
-    """Delete whatever is selected"""
-    selected = lista_mangas_ler.curselection()
-    #data_selected = lista_mangas_ler.get(selected)
-    lista_mangas_ler.delete(selected[0])
-
-
-#cria lista dos mangas no tkinter
 def mangas_para_ler():
     lista_mangas_ler.delete(0, END)
     try:
@@ -145,28 +135,42 @@ def atualiza_mangas():
     else:
         for manga in mangas:
             cria_manga(manga.strip())
-            
-        #with open(MANGAS_LER) as mangas:
-            #mangas_ler = mangas.readlines()
-            #messagebox.showinfo(title='Mangas com capitulo novo !', message=f'Capitulo novo de: {}')
+            print('finalizou')         
+            print(f'url:{manga}')
     finally:    
         mangas_para_ler()
-  
+
+
+def keys_listener(event):
+    match event.char:
+        case 'r':
+            atualiza_mangas()
+            return 0
+        case 'a':
+            mangas_para_ler()
+            return print("Atualizado lista de mangas")
+
+
+def copy_to_clipboard(event):
+    """Copy to clipboard on click"""
+    selected = lista_mangas_ler.curselection()
+    #pyperclip
+    copy(lista_mangas_ler.get(selected))
+
 
 #Window
 window = Tk()
 window.title("Atualiza Manga")
 window.config(padx=20, pady=10)
 
+window.bind("<Key>", keys_listener)
+
 #Buttons
 atualiza_caps_button = Button(text='Atualiza Capitulos',command=atualiza_mangas)
 atualiza_caps_button.grid(column=0,row=1)
 
-delete_button = Button(text='Deleta manga', command=lambda: del_selected(lista_mangas_ler))
+delete_button = Button(text='Deleta manga', command=lambda: delete_manga(lista_mangas_ler))
 delete_button.grid(column=1, row=1)
-
-#procura_ult_button = Button(text='Ultimo capitulo')
-#procura_ult_button.grid(column=0, row=2)
 
 #entrys
 procura_ult_entry = Entry()
@@ -192,9 +196,8 @@ lista_mangas.bind('<<ListboxSelect>>', ultimo_chap)
 #listbox mangas para ler
 lista_mangas_ler = Listbox(window, width=30)
 lista_mangas_ler.grid(column=1, row=2,padx=10)
+lista_mangas_ler.bind('<<ListboxSelect>>', copy_to_clipboard)
 
 mangas_para_ler()
 
 window.mainloop()
-
- 
