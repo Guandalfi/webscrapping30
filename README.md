@@ -1,6 +1,7 @@
 # Atualizador de Mangás
 
 Programa simples de webscrapping feito em python. Ainda tem muita coisa para melhorar no codigo, porem ja funcional hoje.
+Por enquanto funciona apenas com o site Manganelo.
 
 ## Funcionalidades
 
