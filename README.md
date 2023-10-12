@@ -1,6 +1,6 @@
 # Atualizador de Mangás
 
-Este é um programa simples que permite rastrear e atualizar informações sobre mangás, como o último capítulo lido, e copiar links para a área de transferência. O programa pode ser usado para manter o controle de mangás que você está acompanhando e notificá-lo sobre novos capítulos.
+Programa simples de webscrapping feito em python. Ainda tem muita coisa para melhorar no codigo, porem ja funcional hoje.
 
 ## Funcionalidades
 
