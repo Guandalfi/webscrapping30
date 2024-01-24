@@ -137,8 +137,11 @@ def atualiza_mangas():
             cria_manga(manga.strip())
             print('finalizou')         
             print(f'url:{manga}')
+            mangas_para_ler()
     finally:    
         mangas_para_ler()
+        messagebox.showinfo(title="Finalizou atualização", message='Finalizado atualização')
+
 
 
 def keys_listener(event):
@@ -158,6 +161,12 @@ def copy_to_clipboard(event):
     copy(lista_mangas_ler.get(selected))
 
 
+def limpa_mangas():
+    with open(MANGAS_LER, 'w') as file:
+        file.truncate()
+    mangas_para_ler()
+
+
 #Window
 window = Tk()
 window.title("Atualiza Manga")
@@ -169,7 +178,7 @@ window.bind("<Key>", keys_listener)
 atualiza_caps_button = Button(text='Atualiza Capitulos',command=atualiza_mangas)
 atualiza_caps_button.grid(column=0,row=1)
 
-delete_button = Button(text='Deleta manga', command=lambda: delete_manga(lista_mangas_ler))
+delete_button = Button(text='Limpa lista', command=limpa_mangas)
 delete_button.grid(column=1, row=1)
 
 #entrys
