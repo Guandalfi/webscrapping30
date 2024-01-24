@@ -210,3 +210,4 @@ lista_mangas_ler.bind('<<ListboxSelect>>', copy_to_clipboard)
 mangas_para_ler()
 
 window.mainloop()
+#
