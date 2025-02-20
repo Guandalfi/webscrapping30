@@ -62,20 +62,20 @@ def cria_manga(url):
     request.raise_for_status()
 
     soup = BeautifulSoup(request.content, 'html.parser')
-    last_chapter = ''
     try:
         last_chapter = (soup.find('a', {'class':"chapter-name text-nowrap"}).get_text())
-        last_chapter_index = last_chapter.index("Chapter")
-        last_chapter = last_chapter[last_chapter_index + 7:last_chapter_index + 7 + 5]
+        last_chapter_index = last_chapter.index("r")
+
+        last_chapter = last_chapter[1 + last_chapter_index:]
+
+        last_chapter = [i for i in last_chapter if i in '0123456789.-']
+        last_chapter = ''.join(last_chapter)
 
     except AttributeError:
         print(f'Pagina do manga não enctrado:\nurl: {url}')
         return 0
-    if ':' in last_chapter:
-        last_chapter = last_chapter.replace(':', '')
-    if '-' in last_chapter:
-        last_chapter = last_chapter.replace('-', '.')
 
+    print(soup.find('div', class_='story-info-right').h1.getText())
     last_chapter = float(last_chapter)
     name_manga = soup.find('div', class_='story-info-right').h1.getText()
     manga_novo = {name_manga: {
@@ -210,4 +210,3 @@ lista_mangas_ler.bind('<<ListboxSelect>>', copy_to_clipboard)
 mangas_para_ler()
 
 window.mainloop()
-#
