@@ -102,12 +102,13 @@ def ultimo_chap(event):
   selected = lista_mangas.curselection()
   manga_name = lista_mangas.get(selected)
 
-  with open (mangas_info) as mangas:
+  with open (mangas_info) as mangas:    
     mangas = json.load(mangas)
 
   ultimo_cap = mangas[manga_name]['ultimo_capitulo']
   procura_ult_entry.delete(0, END)
   procura_ult_entry.insert(0, ultimo_cap)
+  copy(mangas[manga_name]['url'])
 
 
 def mangas_para_ler():
@@ -152,6 +153,8 @@ def keys_listener(event):
         case 'a':
             mangas_para_ler()
             return print("Atualizado lista de mangas")
+        case 'd':
+            deleta_manga()
 
 
 def copy_to_clipboard(event):
@@ -166,6 +169,44 @@ def limpa_mangas():
         file.truncate()
     mangas_para_ler()
 
+
+def atualiza_lista_mangas():
+    lista_mangas.delete(0, END)
+    for manga in mangas:        
+        lista_mangas.insert(END, manga)
+
+
+def deleta_manga():
+    manga = lista_mangas.get(lista_mangas.curselection())
+    print(lista_mangas.curselection()[0])
+    if messagebox.askyesno(title="Confirma exclusão ?", message=f"Excluir o manga: {manga}?"):
+        
+        # Abre arquivos
+        with open(mangas_info, 'r') as mangas_json:
+            mangas_json = json.load(mangas_json)
+        
+        with open(mangas_url, 'r') as url_mangas:
+            urls = url_mangas.readlines()
+        
+        #Encontra url do manga, para excluir do arquivo de urls primeiro
+        manga_url = f"{mangas_json[manga]['url']}\n"
+        try:
+            urls.remove(manga_url)
+            with open(mangas_url, 'w') as file:            
+                file.writelines(urls)
+        except ValueError:
+            pass
+
+        print("Realizando a exclusão...")        
+        mangas_json.pop(manga)                
+
+        with open(mangas_info, 'w') as file:
+            json.dump(mangas_json, file, indent=1)                    
+
+        atualiza_lista_mangas()
+        
+        return print(f"{manga} excluido com sucesso !")
+            
 
 #Window
 window = Tk()
@@ -182,28 +223,27 @@ delete_button = Button(text='Limpa lista', command=limpa_mangas)
 delete_button.grid(column=1, row=1)
 
 #entrys
-procura_ult_entry = Entry()
-procura_ult_entry.grid(column=0, row=3,columnspan=2)
+procura_ult_entry = Entry(width=10)
+procura_ult_entry.grid(column=0, row=3, columnspan=2, ipady=5, pady=3)
 
 #Labels
 title_label = Label(text='Procura Mangas')
 title_label.grid(column=0, row=0,columnspan=2,pady=10)
 
 #listbox todos mangas
-lista_mangas = Listbox(window, width=30)
+lista_mangas = Listbox(window, width=60, height=20)
 try:
     with open (mangas_info) as mangas:
         mangas = json.load(mangas)
 except json.decoder.JSONDecodeError:
     pass
 else:
-    for manga in mangas:
-        lista_mangas.insert(END, manga)
+    atualiza_lista_mangas()
 lista_mangas.grid(column=0,row=2,)
 lista_mangas.bind('<<ListboxSelect>>', ultimo_chap)
 
 #listbox mangas para ler
-lista_mangas_ler = Listbox(window, width=30)
+lista_mangas_ler = Listbox(window, width=60, height=20)
 lista_mangas_ler.grid(column=1, row=2,padx=10)
 lista_mangas_ler.bind('<<ListboxSelect>>', copy_to_clipboard)
 
